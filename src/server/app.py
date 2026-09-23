@@ -44,6 +44,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.staticfiles import StaticFiles
+os.makedirs(settings.projects_dir, exist_ok=True)
+app.mount("/projects", StaticFiles(directory=settings.projects_dir), name="projects")
+
 # In-memory SSE subscriber queues: {project_id: [asyncio.Queue]}
 _subscribers: Dict[str, List[asyncio.Queue]] = {}
 
