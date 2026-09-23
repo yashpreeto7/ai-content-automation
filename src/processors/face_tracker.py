@@ -43,43 +43,42 @@ class FaceTracker:
                 "filter_str": "scale=1080:1920"
             }
 
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        face_cascade = cv2.CascadeClassifier(cascade_path)
-
-        start_frame = int(start_time * fps)
-        end_frame = min(total_frames, int((start_time + duration) * fps))
-        step_frames = max(1, int(sample_interval * fps))
-
         detected_centers_x = []
-        face_areas = []
 
-        curr_frame = start_frame
-        while curr_frame < end_frame:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, curr_frame)
-            ret, frame = cap.read()
-            if not ret or frame is None:
-                break
+        try:
+            if hasattr(cv2, 'CascadeClassifier'):
+                cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+                face_cascade = cv2.CascadeClassifier(cascade_path)
 
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            # Detect faces with reasonable scale factor
-            faces = face_cascade.detectMultiScale(
-                gray,
-                scaleFactor=1.15,
-                minNeighbors=4,
-                minSize=(int(height * 0.12), int(height * 0.12))
-            )
+                start_frame = int(start_time * fps)
+                end_frame = min(total_frames, int((start_time + duration) * fps))
+                step_frames = max(1, int(sample_interval * fps))
 
-            if len(faces) > 0:
-                # Pick the largest face (most likely the primary speaker)
-                largest_face = max(faces, key=lambda f: f[2] * f[3])
-                fx, fy, fw, fh = largest_face
-                center_x = fx + (fw / 2.0)
-                detected_centers_x.append(center_x)
-                face_areas.append(fw * fh)
+                curr_frame = start_frame
+                while curr_frame < end_frame:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, curr_frame)
+                    ret, frame = cap.read()
+                    if not ret or frame is None:
+                        break
 
-            curr_frame += step_frames
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    faces = face_cascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.15,
+                        minNeighbors=4,
+                        minSize=(int(height * 0.12), int(height * 0.12))
+                    )
 
-        cap.release()
+                    if len(faces) > 0:
+                        largest_face = max(faces, key=lambda f: f[2] * f[3])
+                        fx, _, fw, _ = largest_face
+                        detected_centers_x.append(fx + (fw / 2.0))
+
+                    curr_frame += step_frames
+        except Exception:
+            pass
+        finally:
+            cap.release()
 
         target_crop_w = int(height * (9.0 / 16.0))
         target_crop_h = height
