@@ -1,0 +1,45 @@
+{
+  "system_guidance": "High-retention cinematic prompts optimized for text-to-video models (Gemini Omni Flash, Veo, Runway, Kling). Focus on lighting, lens, motion vector, and temporal stability.",
+  "categories": {
+    "tech_ai": {
+      "hook_prompts": [
+        "Macro cinematic close-up of a glowing quantum processor chip, microscopic laser circuits pulsing with cyan and violet light, shallow depth of field, 8k resolution, slow smooth push in.",
+        "Futuristic dark server vault, endless rows of blinking holographic server racks with fiber optic liquid cooling pipes, volumetric blue haze, cinematic dolly forward."
+      ],
+      "b_roll_prompts": [
+        "A translucent cybernetic robotic hand seamlessly manipulating glowing data streams in midair, neon reflections, 35mm cinematic lens, soft bokeh.",
+        "Abstract visualization of neural network synaptic firing, glowing gold neurons against deep obsidian space, dynamic slow motion orbit."
+      ]
+    },
+    "space_cosmos": {
+      "hook_prompts": [
+        "Epic view of a supermassive black hole with an intense glowing golden accretion disk bending spacetime, relativistic jet shooting into deep cosmos, hyper-detailed, IMAX scale.",
+        "Astronaut hovering in open vacuum above a storm-swept alien exoplanet, visor reflecting a binary sunrise, slow cinematic drift."
+      ],
+      "b_roll_prompts": [
+        "Vibrant gaseous nebula collapsing into a newborn protostar, shockwaves of interstellar dust illuminated by cosmic radiation, smooth time-lapse motion.",
+        "Rugged crystalline terrain of an ice moon, subterranean ocean glowing through deep fissures, starry Milky Way arching across the sky."
+      ]
+    },
+    "psychology_mystery": {
+      "hook_prompts": [
+        "A dimly lit vintage study room with ticking antique clocks, dust motes floating through a beam of afternoon window light, cinematic chiaroscuro, slow push in.",
+        "Silhouette of a thinker standing on the edge of an infinite labyrinth under stormy twilight clouds, mysterious atmospheric fog, wide angle shot."
+      ],
+      "b_roll_prompts": [
+        "An intricate brass mechanical puzzle box unlocking itself layer by layer, gears and levers turning in extreme macro detail, warm candlelight.",
+        "Shattered mirror reflecting fragmented perspectives of a person's silhouette, dramatic side lighting, high contrast noir aesthetic."
+      ]
+    },
+    "finance_wealth": {
+      "hook_prompts": [
+        "High-frequency algorithmic trading terminal monitors glowing in a dark modern penthouse skyscraper overlooking a rainy Manhattan skyline at dusk, anamorphic lens.",
+        "Close-up of molten pure gold being poured into a cryptographic ingot mold, glowing embers, high frame rate slow motion."
+      ],
+      "b_roll_prompts": [
+        "Towering marble columns of a classical central bank architecture, dramatic sunlight slicing through dust beams, slow low-angle tracking shot.",
+        "Futuristic digital currency ledger nodes connecting across a holographic globe, sleek corporate aesthetic, midnight blue and emerald green palette."
+      ]
+    }
+  }
+}

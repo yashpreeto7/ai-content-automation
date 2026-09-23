@@ -1,0 +1,24 @@
+# AI & Generative Models
+google-genai>=2.10.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Audio & Speech-to-Text
+edge-tts>=6.1.9
+faster-whisper>=1.0.0
+
+# Video Processing & Computer Vision
+imageio-ffmpeg>=0.4.9
+moviepy>=1.0.3
+opencv-python-headless>=4.8.0
+pillow>=10.0.0
+
+# CLI & UX
+typer[all]>=0.9.0
+rich>=13.0.0
+
+# Network & Utilities
+httpx>=0.25.0
+aiofiles>=23.2.1
+pyyaml>=6.0.1

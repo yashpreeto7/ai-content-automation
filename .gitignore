@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables & secrets
+.env
+*.local
+credentials.json
+
+# Generated media & output
+output/*
+!output/.gitkeep
+temp/
+*.mp4
+*.mp3
+*.wav
+*.ass
+*.srt
+*.png
+*.jpg
+*.jpeg
+!assets/**
+
+# IDEs & System
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Frontend & Desktop App
+node_modules/
+ui/dist/
+ui/node_modules/
+src-tauri/target/
+
+# Local databases & projects
+*.db
+*.sqlite
+*.sqlite3
+projects/
+
