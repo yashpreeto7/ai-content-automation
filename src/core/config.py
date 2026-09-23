@@ -45,10 +45,12 @@ class Settings(BaseSettings):
     instagram_account_id: Optional[str] = None
 
     # Directory Paths
+    base_dir: Path = ROOT_DIR
     output_dir: Path = DEFAULT_OUTPUT_DIR
     assets_dir: Path = DEFAULT_ASSETS_DIR
     templates_dir: Path = DEFAULT_TEMPLATES_DIR
     projects_dir: Path = DEFAULT_PROJECTS_DIR
+    uploads_dir: Path = ROOT_DIR / "uploads"
     db_path: Path = DEFAULT_DB_PATH
 
     model_config = SettingsConfigDict(
@@ -66,6 +68,7 @@ class Settings(BaseSettings):
         (self.assets_dir / "sfx").mkdir(exist_ok=True)
         self.templates_dir.mkdir(parents=True, exist_ok=True)
         self.projects_dir.mkdir(parents=True, exist_ok=True)
+        self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
 settings = Settings()
 settings.ensure_directories()

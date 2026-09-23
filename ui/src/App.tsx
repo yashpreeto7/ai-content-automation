@@ -18,7 +18,8 @@ import {
   Cpu,
   RefreshCw,
   Download,
-  Upload
+  Upload,
+  AlertCircle
 } from 'lucide-react';
 
 function YoutubeIcon({ size = 16 }: { size?: number }) {
@@ -52,11 +53,39 @@ export default function App() {
   // New Project Form State
   const [newProjName, setNewProjName] = useState('');
   const [newProjVideoPath, setNewProjVideoPath] = useState('');
-  const [newProjProvider, setNewProjProvider] = useState<'gemini' | 'ollama'>('gemini');
+  const [newProjProvider, setNewProjProvider] = useState<'gemini' | 'ollama'>('ollama');
   const [newProjDuration, setNewProjDuration] = useState<number>(12);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [browseResults, setBrowseResults] = useState<{
+    current_path: string;
+    parent_path?: string;
+    directories: { name: string; path: string }[];
+    videos: { name: string; path: string; size_mb: number }[];
+  } | null>(null);
+  const [isBrowsing, setIsBrowsing] = useState(false);
+
+  async function triggerBrowse(path: string) {
+    if (!path.trim()) {
+      setBrowseResults(null);
+      return;
+    }
+    setIsBrowsing(true);
+    try {
+      const res = await api.browseFiles(path.trim());
+      if (res.videos?.length || res.directories?.length) {
+        setBrowseResults(res);
+      } else {
+        setBrowseResults(null);
+      }
+    } catch {
+      setBrowseResults(null);
+    } finally {
+      setIsBrowsing(false);
+    }
+  }
 
   // Live SSE Event State
   const [liveEvent, setLiveEvent] = useState<{ stage: string; progress: number; message: string } | null>(null);
@@ -139,6 +168,7 @@ export default function App() {
     if (!newProjName || !newProjVideoPath) return;
 
     setIsSubmitting(true);
+    setCreateError('');
     try {
       const created = await api.createProject({
         name: newProjName,
@@ -149,10 +179,11 @@ export default function App() {
       setShowNewModal(false);
       setNewProjName('');
       setNewProjVideoPath('');
+      setBrowseResults(null);
       await loadProjects();
       openStudio(created.id);
     } catch (err: any) {
-      alert(err.message || 'Failed to create project');
+      setCreateError(err.message || 'Failed to create project');
     } finally {
       setIsSubmitting(false);
     }
@@ -349,14 +380,108 @@ export default function App() {
                   )}
                 </div>
 
-                <input
-                  type="text"
-                  className="input-field mono-text"
-                  placeholder="e.g. C:\Users\Yashpreet_o7\Videos\raw_recording.mp4"
-                  value={newProjVideoPath}
-                  onChange={(e) => setNewProjVideoPath(e.target.value)}
-                  required
-                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="input-field mono-text"
+                    placeholder="e.g. C:\Users\Yashpreet_o7\Videos\recording.mp4 or G:\movies"
+                    value={newProjVideoPath}
+                    onChange={(e) => {
+                      setNewProjVideoPath(e.target.value);
+                      if (e.target.value.length > 3) triggerBrowse(e.target.value);
+                    }}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => triggerBrowse(newProjVideoPath)}
+                    style={{ padding: '0 14px', whiteSpace: 'nowrap' }}
+                    title="Explore directory for video files"
+                  >
+                    {isBrowsing ? 'Scanning...' : '🔍 Browse'}
+                  </button>
+                </div>
+
+                {browseResults && (browseResults.directories.length > 0 || browseResults.videos.length > 0) && (
+                  <div style={{
+                    background: 'rgba(0,0,0,0.5)',
+                    border: '1px solid var(--accent-cyan)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    marginTop: '8px',
+                    maxHeight: '220px',
+                    overflowY: 'auto'
+                  }}>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--accent-cyan)', fontWeight: 700, marginBottom: '8px' }}>
+                      📁 Found in: {browseResults.current_path}
+                    </div>
+
+                    {browseResults.directories.length > 0 && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Subfolders:</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {browseResults.directories.map((d) => (
+                            <button
+                              key={d.path}
+                              type="button"
+                              className="badge"
+                              style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                              onClick={() => {
+                                setNewProjVideoPath(d.path);
+                                triggerBrowse(d.path);
+                              }}
+                            >
+                              📁 {d.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {browseResults.videos.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 600, marginBottom: '6px' }}>Available Video Files (Click to select):</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {browseResults.videos.map((v) => (
+                            <div
+                              key={v.path}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(16, 185, 129, 0.08)',
+                                border: '1px solid rgba(16, 185, 129, 0.2)'
+                              }}
+                            >
+                              <div style={{ fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '360px' }}>
+                                🎬 {v.name} <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({v.size_mb} MB)</span>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn-primary"
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                                onClick={() => {
+                                  setNewProjVideoPath(v.path);
+                                  if (!newProjName) {
+                                    const cleanName = v.name.replace(/\.[^/.]+$/, '').replace(/[._-]/g, ' ');
+                                    setNewProjName(cleanName);
+                                  }
+                                  setBrowseResults(null);
+                                }}
+                              >
+                                Select Video
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '20px' }}>
@@ -393,10 +518,10 @@ export default function App() {
                     }}
                   >
                     <div style={{ fontWeight: 700, fontSize: '14px', color: '#10B981', marginBottom: '4px' }}>
-                      Local Ollama
+                      Local Ollama (Ready)
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      100% offline & privacy-first. Runs faster-whisper + local model on your RTX 4060.
+                      100% offline & privacy-first. Runs faster-whisper + llama3.2 on your GPU.
                     </div>
                   </div>
                 </div>
@@ -416,6 +541,24 @@ export default function App() {
                   style={{ width: '100%', accentColor: 'var(--accent-cyan)' }}
                 />
               </div>
+
+              {createError && (
+                <div style={{
+                  color: '#EF4444',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <AlertCircle size={16} />
+                  <span>{createError}</span>
+                </div>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                 <button

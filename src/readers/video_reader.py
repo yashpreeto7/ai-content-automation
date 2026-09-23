@@ -33,6 +33,8 @@ class VideoReader:
         path_obj = Path(video_path)
         if not path_obj.exists():
             raise FileNotFoundError(f"Video file not found: {video_path}")
+        if path_obj.is_dir():
+            raise IsADirectoryError(f"Provided path '{video_path}' is a folder, not a video file. Please point to a specific video file (e.g. .mp4, .mkv).")
 
         ffprobe = cls.get_ffprobe_path()
         cmd = [
@@ -115,6 +117,12 @@ class VideoReader:
     @classmethod
     def extract_audio(cls, video_path: str, output_audio_path: str) -> str:
         """Extracts 16kHz mono WAV audio optimized for speech recognition."""
+        path_obj = Path(video_path)
+        if not path_obj.exists():
+            raise FileNotFoundError(f"Video file does not exist: '{video_path}'")
+        if path_obj.is_dir():
+            raise IsADirectoryError(f"Selected path '{video_path}' is a folder/directory, not a video file. Please select a specific video file (e.g. .mp4, .mkv).")
+
         from src.processors.ffmpeg_engine import FFmpegEngine
         ffmpeg = FFmpegEngine.get_ffmpeg_binary()
         out_file = Path(output_audio_path)
@@ -129,7 +137,10 @@ class VideoReader:
             "-ac", "1",
             str(out_file)
         ]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            err = res.stderr.strip().splitlines()[-1] if res.stderr else f"Exit code {res.returncode}"
+            raise RuntimeError(f"FFmpeg audio extraction failed on '{path_obj.name}': {err}")
         return str(out_file)
 
     @classmethod

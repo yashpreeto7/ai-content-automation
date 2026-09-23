@@ -121,11 +121,11 @@ def list_projects():
 @app.post("/api/upload-video")
 async def upload_video(file: UploadFile = File(...)):
     """Uploads a video file from the browser into the local uploads cache directory."""
-    upload_dir = os.path.join(settings.base_dir, "uploads")
-    os.makedirs(upload_dir, exist_ok=True)
+    upload_dir = settings.uploads_dir
+    upload_dir.mkdir(parents=True, exist_ok=True)
 
     clean_name = os.path.basename(file.filename or "uploaded_video.mp4").replace(" ", "_")
-    save_path = os.path.join(upload_dir, f"{int(time.time())}_{clean_name}")
+    save_path = upload_dir / f"{int(time.time())}_{clean_name}"
 
     with open(save_path, "wb") as f:
         while chunk := await file.read(1024 * 1024 * 4):  # 4MB chunks
@@ -133,16 +133,62 @@ async def upload_video(file: UploadFile = File(...)):
 
     return {
         "filename": file.filename,
-        "saved_path": save_path,
+        "saved_path": str(save_path),
         "size_bytes": os.path.getsize(save_path)
+    }
+
+@app.get("/api/browse-files")
+def browse_files(path: str = ""):
+    """Lists video files and subfolders in a specified directory path to help the user pick a file."""
+    search_dir = Path(path.strip().strip('"').strip("'")) if path else settings.projects_dir
+    if not search_dir.exists() or not search_dir.is_dir():
+        return {"current_path": str(search_dir), "directories": [], "videos": []}
+
+    valid_exts = {".mp4", ".mkv", ".mov", ".avi", ".webm", ".flv", ".ts", ".m4v"}
+    dirs = []
+    videos = []
+
+    try:
+        for entry in os.scandir(search_dir):
+            if entry.is_dir():
+                dirs.append({"name": entry.name, "path": entry.path})
+            elif entry.is_file() and Path(entry.name).suffix.lower() in valid_exts:
+                videos.append({
+                    "name": entry.name,
+                    "path": entry.path,
+                    "size_mb": round(entry.stat().st_size / (1024 * 1024), 1)
+                })
+    except Exception as e:
+        return {"error": str(e), "current_path": str(search_dir), "directories": [], "videos": []}
+
+    return {
+        "current_path": str(search_dir),
+        "parent_path": str(search_dir.parent) if search_dir.parent != search_dir else None,
+        "directories": sorted(dirs, key=lambda x: x["name"]),
+        "videos": sorted(videos, key=lambda x: x["name"])
     }
 
 @app.post("/api/projects", response_model=Project)
 def create_project(req: CreateProjectRequest):
     """Creates a new video project and inspects input video metadata."""
-    video_path = Path(req.source_video_path)
+    raw_path_str = req.source_video_path.strip().strip('"').strip("'")
+    video_path = Path(raw_path_str)
+
     if not video_path.exists():
-        raise HTTPException(status_code=400, detail=f"Source video file does not exist: {req.source_video_path}")
+        raise HTTPException(status_code=400, detail=f"Source path does not exist: '{req.source_video_path}'")
+
+    if video_path.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{req.source_video_path}' is a folder/directory, not a video file. Please select a video file (e.g. .mp4, .mkv, .mov) inside this folder."
+        )
+
+    valid_exts = {".mp4", ".mkv", ".mov", ".avi", ".webm", ".flv", ".ts", ".m4v"}
+    if video_path.suffix.lower() not in valid_exts:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{video_path.name}' is not a supported video file ({video_path.suffix or 'no extension'}). Supported formats: {', '.join(sorted(valid_exts))}"
+        )
 
     proj_id = f"proj_{int(time.time())}_{uuid.uuid4().hex[:6]}"
     

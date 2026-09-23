@@ -229,6 +229,18 @@ export const api = {
     return res.json();
   },
 
+  async browseFiles(path?: string): Promise<{
+    current_path: string;
+    parent_path?: string;
+    directories: { name: string; path: string }[];
+    videos: { name: string; path: string; size_mb: number }[];
+    error?: string;
+  }> {
+    const p = path ? `?path=${encodeURIComponent(path)}` : "";
+    const res = await fetch(`${API_BASE}/api/browse-files${p}`);
+    return res.json();
+  },
+
   getMediaUrl(filePath: string): string {
     return `${API_BASE}/media/file?path=${encodeURIComponent(filePath)}`;
   },
