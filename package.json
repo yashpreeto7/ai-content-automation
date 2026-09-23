@@ -1,0 +1,16 @@
+{
+  "name": "ai-content-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Content Production Desktop Application for Hindi/Hinglish Creators",
+  "scripts": {
+    "dev:ui": "npm --prefix ui run dev",
+    "build:ui": "npm --prefix ui run build",
+    "server": "python -m uvicorn src.server.app:app --host 127.0.0.1 --port 8765 --reload",
+    "tauri": "tauri",
+    "test": "python -m pytest tests/ -v"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.5"
+  }
+}

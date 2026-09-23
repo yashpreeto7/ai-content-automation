@@ -8,26 +8,48 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "output"
 DEFAULT_ASSETS_DIR = ROOT_DIR / "assets"
 DEFAULT_TEMPLATES_DIR = ROOT_DIR / "templates"
+DEFAULT_PROJECTS_DIR = ROOT_DIR / "projects"
+DEFAULT_DB_PATH = ROOT_DIR / "projects.db"
 
 class Settings(BaseSettings):
-    # API Keys
-    gemini_api_key: Optional[str] = None
-    elevenlabs_api_key: Optional[str] = None
-    elevenlabs_voice_id: str = "21m00Tcm4TlvDq8ikWAM"
-    runway_api_key: Optional[str] = None
-    replicate_api_token: Optional[str] = None
-    fal_key: Optional[str] = None
+    # Active AI Provider: "gemini" or "ollama"
+    ai_provider: str = "gemini"
 
-    # Pipeline Defaults
+    # Gemini Cloud Provider
+    gemini_api_key: Optional[str] = None
+    gemini_model: str = "gemini-2.0-flash"
+
+    # Ollama Local Provider
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2"
+    ollama_vision_model: str = "llava"
+
+    # Speech Synthesis & Transcription
+    default_voice: str = "hi-IN-MadhurNeural"
+    faster_whisper_model: str = "base"
+    faster_whisper_device: str = "cpu"  # "cuda" if available, else "cpu"
+    faster_whisper_compute: str = "int8"
+
+    # Audio & Video Editing Defaults
+    silence_threshold_ms: int = 800
+    ducking_db: float = -12.0
     default_aspect_ratio: str = "9:16"
-    default_voice: str = "en-US-ChristopherNeural"
     default_style: str = "cinematic"
     log_level: str = "INFO"
+
+    # Publishing Credentials (Optional)
+    youtube_client_id: Optional[str] = None
+    youtube_client_secret: Optional[str] = None
+    youtube_redirect_uri: str = "http://localhost:8765/api/publish/youtube/callback"
+    instagram_access_token: Optional[str] = None
+    instagram_account_id: Optional[str] = None
 
     # Directory Paths
     output_dir: Path = DEFAULT_OUTPUT_DIR
     assets_dir: Path = DEFAULT_ASSETS_DIR
     templates_dir: Path = DEFAULT_TEMPLATES_DIR
+    projects_dir: Path = DEFAULT_PROJECTS_DIR
+    db_path: Path = DEFAULT_DB_PATH
 
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -43,6 +65,7 @@ class Settings(BaseSettings):
         (self.assets_dir / "music").mkdir(exist_ok=True)
         (self.assets_dir / "sfx").mkdir(exist_ok=True)
         self.templates_dir.mkdir(parents=True, exist_ok=True)
+        self.projects_dir.mkdir(parents=True, exist_ok=True)
 
 settings = Settings()
 settings.ensure_directories()

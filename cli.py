@@ -186,5 +186,191 @@ def list_styles():
 
     console.print(table)
 
+@app.command()
+def server(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host address"),
+    port: int = typer.Option(8765, "--port", "-p", help="Port number"),
+    reload: bool = typer.Option(False, "--reload", help="Enable auto-reload for development")
+):
+    """
+    Launch the local desktop processing backend server.
+    """
+    import uvicorn
+    console.print(f"[bold cyan]Starting AI Content Automation Server on http://{host}:{port}...[/bold cyan]")
+    uvicorn.run("src.server.app:app", host=host, port=port, reload=reload)
+
+@app.command()
+def list_projects():
+    """
+    List all local video production projects from SQLite database.
+    """
+    from src.core.database import db
+    projects = db.list_projects()
+    if not projects:
+        console.print("[yellow]No projects found in database.[/yellow]")
+        return
+
+    table = Table(title="Local Production Projects", border_style="cyan")
+    table.add_column("Project ID", style="bold cyan")
+    table.add_column("Name", style="bold white")
+    table.add_column("Provider", style="green")
+    table.add_column("Status", style="yellow")
+    table.add_column("Duration", style="white")
+
+    for p in projects:
+        dur = f"{round(p.duration_seconds / 60, 1)}m" if p.duration_seconds else "—"
+        table.add_row(p.id, p.name, p.ai_provider.upper(), p.status, dur)
+
+    console.print(table)
+
+@app.command()
+def process_video(
+    video_path: str = typer.Argument(..., help="Path to raw Hindi/Hinglish recording"),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Project name"),
+    provider: str = typer.Option("gemini", "--provider", "-p", help="AI provider ('gemini' or 'ollama')"),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="AI model identifier")
+):
+    """
+    Run the complete autonomous end-to-end production pipeline on a raw video:
+    Inspect -> Transcribe -> AI Curate (10-15m + 4-5 Shorts) -> Render 16:9 & 9:16 -> Metadata.
+    """
+    import asyncio
+    import uuid
+    import time
+    from src.core.database import db
+    from src.providers.factory import get_ai_provider
+    from src.processors.caption_engine import CaptionEngine
+    from src.processors.ffmpeg_engine import FFmpegEngine
+    from src.core.models import WordTiming
+
+    path_obj = Path(video_path).resolve()
+    if not path_obj.exists():
+        console.print(f"[bold red]Error: Video file not found at {path_obj}[/bold red]")
+        raise typer.Exit(code=1)
+
+    proj_name = name or path_obj.stem.replace("_", " ").title()
+    proj_id = f"proj_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+
+    console.print(Panel(
+        f"[bold cyan]AUTONOMOUS HINGLISH VIDEO PRODUCTION ENGINE[/bold cyan]\n"
+        f"[white]Project:[/white] {proj_name}\n"
+        f"[white]Source Video:[/white] {path_obj}\n"
+        f"[white]AI Provider:[/white] {provider.upper()} ({model or 'default'})",
+        expand=False
+    ))
+
+    # 1. Inspection
+    meta = VideoReader.get_metadata(str(path_obj))
+    project = db.create_project(
+        project_id=proj_id,
+        name=proj_name,
+        source_video_path=str(path_obj),
+        ai_provider=provider,
+        ai_model=model or ("gemini-2.0-flash" if provider == "gemini" else "llama3.2"),
+        duration_seconds=meta.get("duration_seconds", 0.0),
+        video_width=meta.get("width", 1920),
+        video_height=meta.get("height", 1080)
+    )
+
+    proj_dir = settings.projects_dir / proj_id
+
+    # 2. Transcription
+    console.print("\n[bold yellow]Step 1/5: Transcribing spoken Hinglish via faster-whisper...[/bold yellow]")
+    audio_file = proj_dir / "audio" / "extracted.wav"
+    VideoReader.extract_audio(str(path_obj), str(audio_file))
+    transcript = VideoReader.transcribe(str(audio_file), language="hi")
+    db.save_transcript(proj_id, transcript)
+    console.print(f"[green]✓ Transcribed {len(transcript.segments)} segments ({len(transcript.full_text.split())} words)[/green]")
+
+    # 3. AI Analysis & Edit Plan
+    console.print(f"\n[bold yellow]Step 2/5: Analyzing conversation & curating edit decisions via {provider.upper()}...[/bold yellow]")
+    ai_eng = get_ai_provider(provider, model)
+    keyframes = VideoReader.extract_keyframes(str(path_obj), str(proj_dir / "previews" / "keyframes"), num_frames=6)
+    
+    async def run_ai():
+        analysis = await ai_eng.analyze_content(str(path_obj), transcript, keyframes)
+        db.save_content_analysis(proj_id, analysis)
+
+        long_form = await ai_eng.select_long_form(analysis, transcript, target_duration_seconds=720.0)
+        shorts = await ai_eng.select_shorts(analysis, transcript, count=5)
+        silence = VideoReader.detect_silence(str(path_obj), min_duration_seconds=0.8)
+        edit_plan = await ai_eng.generate_edit_plan(proj_id, long_form, shorts, transcript, silence)
+        db.save_edit_plan(proj_id, edit_plan, status="ready_for_review")
+
+        metadata = await ai_eng.generate_metadata(proj_name, transcript, long_form, shorts)
+        db.save_metadata(proj_id, metadata)
+        return analysis, long_form, shorts, edit_plan, metadata
+
+    analysis, long_form, shorts, edit_plan, metadata = asyncio.run(run_ai())
+    console.print(f"[green]✓ Narrative Arc: {long_form.narrative_arc}[/green]")
+    console.print(f"[green]✓ Selected {len(long_form.segments)} long-form cuts (~{round(long_form.estimated_duration / 60, 1)} mins)[/green]")
+    console.print(f"[green]✓ Discovered {len(shorts)} standalone Shorts/Reels candidates[/green]")
+
+    # 4. Deterministic Long-Form Render
+    console.print("\n[bold yellow]Step 3/5: Rendering 16:9 Long-Form Video with audio normalization...[/bold yellow]")
+    long_mp4 = proj_dir / "renders" / f"{proj_id}_long_form.mp4"
+    FFmpegEngine.render_long_form(
+        source_video=str(path_obj),
+        segments=long_form.segments,
+        output_path=str(long_mp4),
+        normalize_audio=True
+    )
+    console.print(f"[bold green]✓ Long-Form Render Complete:[/bold green] {long_mp4}")
+
+    # 5. Render 4–5 Shorts
+    console.print("\n[bold yellow]Step 4/5: Rendering 4–5 Shorts (9:16 vertical, smart face crop & Roman-Hinglish captions)...[/bold yellow]")
+    for s in shorts:
+        s_dir = proj_dir / "shorts" / s.id
+        s_dir.mkdir(parents=True, exist_ok=True)
+        s_mp4 = s_dir / f"{s.id}_rendered.mp4"
+
+        # Filter word timings
+        words_in_short = []
+        for seg in transcript.segments:
+            for w in seg.words:
+                if s.body_start <= w.start <= s.body_end:
+                    words_in_short.append(WordTiming(
+                        word=w.word,
+                        start=round(w.start - s.body_start, 3),
+                        end=round(w.end - s.body_start, 3),
+                        confidence=w.confidence
+                    ))
+
+        sub_file = None
+        if words_in_short:
+            ass_path = s_dir / f"{s.id}_captions.ass"
+            CaptionEngine.generate_ass(words_in_short, str(ass_path), aspect_ratio="9:16")
+            sub_file = str(ass_path)
+
+        FFmpegEngine.render_short(
+            source_video=str(path_obj),
+            body_start=s.body_start,
+            body_end=s.body_end,
+            hook_start=s.hook_start,
+            hook_end=s.hook_end,
+            output_path=str(s_mp4),
+            subtitles_file=sub_file,
+            use_smart_face_crop=True
+        )
+        console.print(f"  [green]✓ {s.id} ({s.category}): {s_mp4.name} (★ {s.score})[/green]")
+
+    # 6. Metadata Summary
+    console.print("\n[bold yellow]Step 5/5: Packaging SEO & Social Metadata...[/bold yellow]")
+    db.update_project_status(proj_id, "completed")
+
+    table = Table(title="Viral Publication Metadata", border_style="cyan")
+    table.add_column("Property", style="bold yellow", width=22)
+    table.add_column("Details", style="white")
+
+    for i, t in enumerate(metadata.long_form_title_options[:3]):
+        table.add_row(f"Title Option {i+1}", t)
+    table.add_row("Thumbnail Concept", metadata.long_form_thumbnail_concept[:120] + "...")
+    table.add_row("Tags", ", ".join(metadata.long_form_tags[:8]))
+    table.add_row("Output Directory", str(proj_dir))
+
+    console.print(table)
+    console.print("\n[bold green]🎉 FULL PIPELINE EXECUTION COMPLETED SUCCESSFULLY![/bold green]\n")
+
 if __name__ == "__main__":
     app()
+
