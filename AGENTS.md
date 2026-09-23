@@ -79,6 +79,9 @@ When performing tasks, proactively consult and execute the appropriate skill in 
 | **video-generation** | `.agents/skills/video-generation` | Text-to-video, Image-to-video, keyframe interpolation, voiceover synthesis | Prompting GenAI video models, generating visual B-roll, generating voice tracks |
 | **video-processing** | `.agents/skills/video-processing` | FFmpeg assembly, vertical reframing (9:16), animated captions, audio ducking | Trimming, merging, burning subtitles, applying audio ducking, rendering final output |
 | **content-pipeline** | `.agents/skills/content-pipeline` | Autonomous Topic $\to$ Final Video package orchestration | Running end-to-end multi-step video automation batch jobs |
+| **hinglish-content-producer** | `.agents/skills/hinglish-content-producer` | Conversational Hindi/Hinglish intelligence, Roman Hinglish captions, hook optimization | Processing raw Hinglish tech discussions, creating 10-15m YouTube cut & 4-5 Shorts |
+| **ollama-local-ai** | `.agents/skills/ollama-local-ai` | Local Ollama LLM execution, 8GB VRAM budgeting, JSON schemas, offline fallback | Local private video intelligence without sending data to cloud |
+| **video-publishing** | `.agents/skills/video-publishing` | YouTube Data API v3 and Instagram Graph API publishing with human review gates | Uploading approved long-form videos and 9:16 Reels/Shorts with metadata |
 | **ui-ux-pro-max** | `.agents/skills/ui-ux-pro-max` | UI design systems, color tokens, typography, chart/layout rules | Designing web dashboards, studio interfaces, component aesthetics |
 | **impeccable** | `.agents/skills/impeccable` | Frontend critique, polish, micro-interactions, layout audits | Polishing UI code, eliminating visual flaws, elevating fidelity |
 | **planning-with-files** | `.agents/skills/planning-with-files` | Manus-style task planning (`task_plan.md`, `findings.md`) | Any complex task requiring 5+ tool invocations or multi-phase refactoring |

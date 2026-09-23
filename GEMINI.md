@@ -8,6 +8,9 @@ This project uses `AGENTS.md` as its primary configuration and instruction guide
    - `video-generation`: Generative AI video synthesis, B-roll, voiceover (not screen recording).
    - `video-processing`: FFmpeg pipelines, vertical 9:16 reframing, animated captions, audio ducking.
    - `content-pipeline`: Autonomous topic-to-video batch orchestrator.
+   - `hinglish-content-producer`: Spoken Hindi/Hinglish intelligence, Roman Hinglish captions, and hook reordering.
+   - `ollama-local-ai`: Local offline inference, 8GB VRAM budgeting, JSON schemas, heuristic fallback.
+   - `video-publishing`: YouTube Data API v3 and Instagram Reels Graph API publishing.
    - `ui-ux-pro-max` & `impeccable`: UI/UX design intelligence and aesthetic polish.
    - `planning-with-files` & `context-sync`: Manus-style planning and state preservation.
    - `skill-creator`: Authoring, validating, and registering Antigravity skills.
