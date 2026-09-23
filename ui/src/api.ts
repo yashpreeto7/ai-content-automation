@@ -216,6 +216,19 @@ export const api = {
     return res.json();
   },
 
+  async uploadVideo(file: File): Promise<{ filename: string; saved_path: string; size_bytes: number }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/api/upload-video`, {
+      method: "POST",
+      body: formData
+    });
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
   getMediaUrl(filePath: string): string {
     return `${API_BASE}/media/file?path=${encodeURIComponent(filePath)}`;
   },

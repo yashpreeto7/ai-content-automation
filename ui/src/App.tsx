@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Cpu,
   RefreshCw,
-  Download
+  Download,
+  Upload
 } from 'lucide-react';
 
 function YoutubeIcon({ size = 16 }: { size?: number }) {
@@ -54,9 +55,31 @@ export default function App() {
   const [newProjProvider, setNewProjProvider] = useState<'gemini' | 'ollama'>('gemini');
   const [newProjDuration, setNewProjDuration] = useState<number>(12);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   // Live SSE Event State
   const [liveEvent, setLiveEvent] = useState<{ stage: string; progress: number; message: string } | null>(null);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError('');
+    try {
+      const res = await api.uploadVideo(file);
+      setNewProjVideoPath(res.saved_path);
+      if (!newProjName) {
+        const defaultName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+        setNewProjName(defaultName);
+      }
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to upload video');
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   useEffect(() => {
     loadProjects();
@@ -296,8 +319,36 @@ export default function App() {
 
               <div style={{ marginBottom: '18px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
-                  Source Video Absolute File Path (MP4, MKV, MOV)
+                  Video Source (Upload or Enter Local Path)
                 </label>
+
+                <div style={{
+                  border: '2px dashed var(--border-color)',
+                  borderRadius: '10px',
+                  padding: '16px',
+                  textAlign: 'center',
+                  marginBottom: '10px',
+                  background: 'rgba(0,0,0,0.2)'
+                }}>
+                  <input
+                    type="file"
+                    id="video-file-picker"
+                    accept="video/mp4,video/mkv,video/quicktime,video/webm"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="video-file-picker" className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginBottom: '8px' }}>
+                    <Upload size={15} style={{ marginRight: '6px' }} />
+                    {isUploading ? 'Uploading Video...' : '📁 Browse / Select Video File from PC'}
+                  </label>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Select any MP4, MKV, or MOV from your computer, or paste the file path below
+                  </div>
+                  {uploadError && (
+                    <div style={{ color: '#EF4444', fontSize: '12px', marginTop: '6px' }}>{uploadError}</div>
+                  )}
+                </div>
+
                 <input
                   type="text"
                   className="input-field mono-text"

@@ -5,7 +5,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, List
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -117,6 +117,25 @@ def shutil_which_ffmpeg():
 def list_projects():
     """Lists all projects ordered by last update."""
     return db.list_projects()
+
+@app.post("/api/upload-video")
+async def upload_video(file: UploadFile = File(...)):
+    """Uploads a video file from the browser into the local uploads cache directory."""
+    upload_dir = os.path.join(settings.base_dir, "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    clean_name = os.path.basename(file.filename or "uploaded_video.mp4").replace(" ", "_")
+    save_path = os.path.join(upload_dir, f"{int(time.time())}_{clean_name}")
+
+    with open(save_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024 * 4):  # 4MB chunks
+            f.write(chunk)
+
+    return {
+        "filename": file.filename,
+        "saved_path": save_path,
+        "size_bytes": os.path.getsize(save_path)
+    }
 
 @app.post("/api/projects", response_model=Project)
 def create_project(req: CreateProjectRequest):
